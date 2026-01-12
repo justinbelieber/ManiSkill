@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Dict, Tuple
+from typing import Tuple
 
 import numpy as np
 import sapien
@@ -95,8 +95,8 @@ class PandaStick(BaseAgent):
         )
         arm_pd_ee_pose = PDEEPoseControllerConfig(
             joint_names=self.arm_joint_names,
-            pos_lower=None,
-            pos_upper=None,
+            pos_lower=-2.0,
+            pos_upper=2.0,
             stiffness=self.arm_stiffness,
             damping=self.arm_damping,
             force_limit=self.arm_force_limit,
@@ -169,7 +169,7 @@ class PandaStick(BaseAgent):
             self.robot.get_links(), self.ee_link_name
         )
 
-        self.queries: Dict[
+        self.queries: dict[
             str, Tuple[physx.PhysxGpuContactPairImpulseQuery, Tuple[int]]
         ] = dict()
 
