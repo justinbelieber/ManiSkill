@@ -44,3 +44,13 @@ imgui.ini
 # testing
 .coverage*
 htmlcov/
+
+# data
+scripts/single_av/depth
+scripts/single_av/rgb
+*.npy
+*.flag
+*.ply
+*.png
+*.json
+*.h5
