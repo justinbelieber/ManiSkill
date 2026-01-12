@@ -1,9 +1,10 @@
-from typing import Dict, Generic, List, TypeVar
+from typing import Generic, TypeVar
 
 import torch
 from gymnasium import spaces
 
 from mani_skill.agents.base_agent import BaseAgent
+from mani_skill.sensors.base_sensor import BaseSensorConfig
 
 T = TypeVar("T")
 
@@ -11,13 +12,17 @@ T = TypeVar("T")
 class MultiAgent(BaseAgent, Generic[T]):
     agents: T
 
-    def __init__(self, agents: List[BaseAgent]):
+    def __init__(self, agents: list[BaseAgent]):
         self.agents = agents
-        self.agents_dict: Dict[str, BaseAgent] = dict()
+        self.agents_dict: dict[str, BaseAgent] = dict()
         self.scene = agents[0].scene
         self.sensor_configs = []
+        self._sensor_config_agent_map: dict[str, int] = dict()
         for i, agent in enumerate(self.agents):
-            self.sensor_configs += agent._sensor_configs
+            for sensor_config in agent._sensor_configs:
+                sensor_config.uid = f"{agent.uid}-{i}-{sensor_config.uid}"
+                self.sensor_configs.append(sensor_config)
+                self._sensor_config_agent_map[sensor_config.uid] = i
             self.agents_dict[f"{agent.uid}-{i}"] = agent
 
     def get_proprioception(self):
@@ -27,11 +32,16 @@ class MultiAgent(BaseAgent, Generic[T]):
         return proprioception
 
     @property
+    def _sensor_configs(self) -> list[BaseSensorConfig]:
+        """Returns a list of sensor configs for this agent. It contains the sensor configs of the individual agents."""
+        return self.sensor_configs
+
+    @property
     def control_mode(self):
         """Get the currently activated controller uid of each robot"""
         return {uid: agent.control_mode for uid, agent in self.agents_dict.items()}
 
-    def set_control_mode(self, control_mode: List[str] = None):
+    def set_control_mode(self, control_mode: list[str] = None):
         """Set the controller, drive properties, and reset for each agent. If given control mode is None, will set defaults"""
         if control_mode is None:
             for agent in self.agents:
@@ -69,6 +79,18 @@ class MultiAgent(BaseAgent, Generic[T]):
     def before_simulation_step(self):
         for agent in self.agents:
             agent.controller.before_simulation_step()
+
+    def get_controller_state(self):
+        """
+        Get the state of the controller.
+        """
+        return {
+            uid: agent.get_controller_state() for uid, agent in self.agents_dict.items()
+        }
+
+    def set_controller_state(self, state: dict):
+        for uid, agent in self.agents_dict.items():
+            agent.set_controller_state(state[uid])
 
     # -------------------------------------------------------------------------- #
     # Other
